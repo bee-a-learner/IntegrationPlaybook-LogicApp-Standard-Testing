@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 
 namespace IPB.LogicApp.Standard.Testing
 {
@@ -71,7 +72,48 @@ namespace IPB.LogicApp.Standard.Testing
             return _workflowResponse;
         }
 
-        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="workflowName"></param>
+        /// <param name="triggerName"></param>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        public WorkFlowResponse RunLogicAppWorkflow(string workflowName, string triggerName, StringContent content)
+        {
+            _workflowResponse = _workflowHelper.RunLogicAppWorkflow(workflowName, triggerName, content);
+            return _workflowResponse;
+        }
+
+        /// <summary>
+        /// Gets the most recent completed workflow, if workflow is in running state than it will wait for it to complete
+        /// </summary>
+        /// <param name="workflowName"></param>
+        /// <returns></returns>
+        public RunDetails GetRecentCompletedRunDetails(string workflowName)
+        {
+            string runStatus = "";
+            int interval = 1;
+            RunDetails runDetails = null;
+            do
+            {
+                runDetails = _workflowHelper.GetMostRecentRun(workflowName);
+
+                runStatus = runDetails.properties.status;
+
+                if (runStatus == "Running")
+                {
+                    //Sleep exponantial time window 
+                    Thread.Sleep(2000 * interval);
+                }
+                interval++;
+
+            //wait until workflow status is running, max wait time 5 mins
+            } while (runStatus == "Running");
+
+            return runDetails;
+        }
+
         /// <summary>
         /// Loads the run history of the executed logic app.  This needs to be called before you start testing the actions
         /// that got executed
@@ -82,15 +124,19 @@ namespace IPB.LogicApp.Standard.Testing
                 throw new Exception("You havent triggered the logic app");
 
             _workflowRunHelper = _workflowHelper.GetWorkflowRunHelper(_workflowResponse.WorkFlowRunId);
-            _workflowRunHelper.GetRunActions();
-            _workflowRunHelper.GetRunDetails();
+            _workflowRunHelper.GetRunActions(_workflowHelper.WorkflowName);
+            _workflowRunHelper.GetRunDetails(_workflowHelper.WorkflowName);
         }
 
-        public void LoadWorkflowRunHistory(string runId)
-        {            
+        public void LoadWorkflowRunHistory(string workflowName, string runId)
+        {
+            if (string.IsNullOrWhiteSpace(workflowName))
+            {
+                workflowName = _workflowHelper.WorkflowName;
+            }
             _workflowRunHelper = _workflowHelper.GetWorkflowRunHelper(runId);
-            _workflowRunHelper.GetRunActions();
-            _workflowRunHelper.GetRunDetails();
+            _workflowRunHelper.GetRunActions(workflowName);
+            _workflowRunHelper.GetRunDetails(workflowName);
         }
 
         public WorkflowRunList GetRunsSince(DateTime startDate)
@@ -98,14 +144,33 @@ namespace IPB.LogicApp.Standard.Testing
             return _workflowHelper.GetRunsSince(startDate);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startDate"></param>
+        /// <returns></returns>
         public RunDetails GetMostRecentRunSince(DateTime startDate)
         {
-            return _workflowHelper.GetMostRecentRunDetails(startDate);
+            int interval = 1;
+            RunDetails runDetails = null;
+            do
+            {
+                runDetails = _workflowHelper.GetMostRecentRunDetails(startDate);
+
+                if (runDetails == null)
+                {
+                    Thread.Sleep(2000 * interval);
+                }
+                interval++;
+
+            } while (runDetails == null && interval < 1500);
+
+            return runDetails;
         }
 
-        public RunDetails GetMostRecentRun()
+        public RunDetails GetMostRecentRun(string workflowName)
         {
-            return _workflowHelper.GetMostRecentRun();
+            return _workflowHelper.GetMostRecentRun(workflowName);
         }
 
         public string GetMostRecentRunIdSince(DateTime startDate)
@@ -118,9 +183,9 @@ namespace IPB.LogicApp.Standard.Testing
         /// </summary>
         /// <param name="refresh"></param>
         /// <returns></returns>
-        public WorkflowRunStatus GetWorkflowRunStatus(bool refresh = false)
+        public WorkflowRunStatus GetWorkflowRunStatus(string workflowName, bool refresh = false)
         {
-            var runDetails = _workflowRunHelper.GetRunDetails(refresh);
+            var runDetails = _workflowRunHelper.GetRunDetails(workflowName, refresh);
             return runDetails.properties.WorkflowRunStatus;
         }
 
@@ -131,9 +196,9 @@ namespace IPB.LogicApp.Standard.Testing
         /// <param name="refreshActions"></param>
         /// <param name="formatActionName"></param>
         /// <returns></returns>
-        public ActionStatus GetActionStatus(string actionName, bool refreshActions = false, bool formatActionName = true)
+        public ActionStatus GetActionStatus(string actionName, string workflowName, bool refreshActions = false, bool formatActionName = true)
         {
-            return _workflowRunHelper.GetActionStatus(actionName, refreshActions, formatActionName);
+            return _workflowRunHelper.GetActionStatus(actionName, workflowName, refreshActions, formatActionName);
         }
 
         /// <summary>
@@ -143,9 +208,9 @@ namespace IPB.LogicApp.Standard.Testing
         /// <param name="refreshActions"></param>
         /// <param name="formatActionName"></param>
         /// <returns></returns>
-        public string GetActionInputMessage(string actionName, bool refreshActions = false, bool formatActionName = true)
+        public string GetActionInputMessage(string actionName, string workflowName, bool refreshActions = false, bool formatActionName = true)
         {
-            var action = _workflowRunHelper.GetActionJson(actionName, refreshActions, formatActionName);
+            var action = _workflowRunHelper.GetActionJson(actionName, workflowName, refreshActions, formatActionName);
             var url = action["inputsLink"]?["uri"]?.Value<string>();
             var httpClient = new HttpClient();
             var response = httpClient.GetAsync(url).Result;
@@ -153,6 +218,7 @@ namespace IPB.LogicApp.Standard.Testing
             return response.Content.ReadAsStringAsync().Result;
         }
 
+
         /// <summary>
         /// Get the input message to an action
         /// </summary>
@@ -160,9 +226,9 @@ namespace IPB.LogicApp.Standard.Testing
         /// <param name="refreshActions"></param>
         /// <param name="formatActionName"></param>
         /// <returns></returns>
-        public string GetActionOutputMessage(string actionName, bool refreshActions = false, bool formatActionName = true)
+        public string GetActionOutputMessage(string actionName, string workflowName, bool refreshActions = false, bool formatActionName = true)
         {
-            var action = _workflowRunHelper.GetActionJson(actionName, refreshActions, formatActionName);
+            var action = _workflowRunHelper.GetActionJson(actionName, workflowName, refreshActions, formatActionName);
             var url = action["outputsLink"]?["uri"]?.Value<string>();
             var httpClient = new HttpClient();
             var response = httpClient.GetAsync(url).Result;
@@ -174,12 +240,13 @@ namespace IPB.LogicApp.Standard.Testing
         /// Get the action json if you want to inspect it within your test
         /// </summary>
         /// <param name="actionName"></param>
+        /// <param name="workflowName"></param>
         /// <param name="refreshActions"></param>
         /// <param name="formatActionName"></param>
         /// <returns></returns>
-        public JToken GetActionJson(string actionName, bool refreshActions = false, bool formatActionName = true)
+        public JToken GetActionJson(string actionName, string workflowName, bool refreshActions = false, bool formatActionName = true)
         {
-            return _workflowRunHelper.GetActionJson(actionName, refreshActions, formatActionName);
+            return _workflowRunHelper.GetActionJson(actionName, workflowName, refreshActions, formatActionName);
         }
 
         /// <summary>
@@ -187,14 +254,14 @@ namespace IPB.LogicApp.Standard.Testing
         /// </summary>
         /// <param name="refresh"></param>
         /// <returns></returns>
-        public TriggerStatus GetTriggerStatus(bool refresh = false)
+        public TriggerStatus GetTriggerStatus(string workflowName, bool refresh = false)
         {
-            return _workflowRunHelper.GetTriggerStatus(refresh);
+            return _workflowRunHelper.GetTriggerStatus(workflowName, refresh);
         }
 
-        public string GetTriggerMessage(bool refresh = false)
+        public string GetTriggerMessage(string workflowName, bool refresh = false)
         {
-            return _workflowRunHelper.GetTriggerMessage(refresh);
+            return _workflowRunHelper.GetTriggerMessage(workflowName, refresh);
         }
 
         public GeneratedTestSample GenerateTestSample(string runId, bool includeSkippedSteps = false)
@@ -202,8 +269,8 @@ namespace IPB.LogicApp.Standard.Testing
             var sample = new GeneratedTestSample();
 
             _workflowRunHelper = _workflowHelper.GetWorkflowRunHelper(runId);
-            var runActions = _workflowRunHelper.GetRunActions();
-            var runDetails = _workflowRunHelper.GetRunDetails();
+            var runActions = _workflowRunHelper.GetRunActions(_workflowHelper.WorkflowName);
+            var runDetails = _workflowRunHelper.GetRunDetails(_workflowHelper.WorkflowName);
 
             var testCodeBuilder = new StringBuilder();
             testCodeBuilder.Append(Properties.Resources.SampleTestCode);
@@ -235,7 +302,7 @@ namespace IPB.LogicApp.Standard.Testing
 
             sample.TestSampleCode = testCodeBuilder.ToString();
 
-            var triggerMessage = _workflowRunHelper.GetTriggerMessage();
+            var triggerMessage = _workflowRunHelper.GetTriggerMessage(_workflowHelper.WorkflowName);
             try
             {
                 //We will try to get the message body if its a json message such as HTTP with headers

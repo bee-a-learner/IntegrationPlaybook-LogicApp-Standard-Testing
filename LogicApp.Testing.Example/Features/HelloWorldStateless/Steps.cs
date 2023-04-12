@@ -56,7 +56,7 @@ namespace LogicApp.Testing.Example.Features.HelloWorldStateless
             TestContext.LogicAppTestManager.LoadWorkflowRunHistory();
 
             //We can check the trigger status was successful
-            var triggerStatus = TestContext.LogicAppTestManager.GetTriggerStatus();
+            var triggerStatus = TestContext.LogicAppTestManager.GetTriggerStatus(TestContext.WorkflowName);
             Assert.AreEqual(triggerStatus, TriggerStatus.Succeeded);
 
         }
@@ -64,21 +64,21 @@ namespace LogicApp.Testing.Example.Features.HelloWorldStateless
         [Then(@"the logic app will receive the message")]
         public void ThenTheLogicAppWillReceiveTheMessage()
         {
-            var actionStatus = TestContext.LogicAppTestManager.GetActionStatus("Compose - Log Message Received");
+            var actionStatus = TestContext.LogicAppTestManager.GetActionStatus("Compose - Log Message Received", TestContext.WorkflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
         }
 
         [Then(@"the logic app will send a reply")]
         public void ThenTheLogicAppWillSendAReply()
         {
-            var actionStatus = TestContext.LogicAppTestManager.GetActionStatus("Response");
+            var actionStatus = TestContext.LogicAppTestManager.GetActionStatus("Response", TestContext.WorkflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
         }
 
         [Then(@"the logic app will complete successfully")]
         public void ThenTheLogicAppWillCompleteSuccessfully()
         {
-            var workflowRunStatus = TestContext.LogicAppTestManager.GetWorkflowRunStatus();
+            var workflowRunStatus = TestContext.LogicAppTestManager.GetWorkflowRunStatus(TestContext.WorkflowName);
             Assert.AreEqual(WorkflowRunStatus.Succeeded, workflowRunStatus);
         }
 

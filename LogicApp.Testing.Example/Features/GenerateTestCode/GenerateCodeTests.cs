@@ -56,16 +56,16 @@ namespace LogicApp.Testing.Example.Features.GenerateTestCode
             //Assert
             Assert.IsNotNull(response.WorkFlowRunId);
 
-            var triggerStatus = logicAppTestManager.GetTriggerStatus();
+            var triggerStatus = logicAppTestManager.GetTriggerStatus(workflowName);
             Assert.AreEqual(triggerStatus, TriggerStatus.Succeeded);
 
-            var workflowRunStatus = logicAppTestManager.GetWorkflowRunStatus();
+            var workflowRunStatus = logicAppTestManager.GetWorkflowRunStatus(workflowName);
             Assert.AreEqual(workflowRunStatus, WorkflowRunStatus.Succeeded);
 
-            actionStatus = logicAppTestManager.GetActionStatus("Compose_-_Log_Message_Received");
+            actionStatus = logicAppTestManager.GetActionStatus("Compose_-_Log_Message_Received", workflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
 
-            actionStatus = logicAppTestManager.GetActionStatus("Response");
+            actionStatus = logicAppTestManager.GetActionStatus("Response", workflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
 
         }

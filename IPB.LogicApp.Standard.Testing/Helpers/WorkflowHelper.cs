@@ -77,6 +77,29 @@ namespace IPB.LogicApp.Standard.Testing.Helpers
         }
 
         /// <summary>
+        /// This method help to run the logic app workflow based on workflow name and trigger name, 
+        /// </summary>
+        /// <param name="workflowName"></param>
+        /// <param name="triggerName">name of trigger type e.g.: recurrence, manual etc.</param>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        public WorkFlowResponse RunLogicAppWorkflow(string workflowName, string triggerName, StringContent content)
+        {
+
+            if (string.IsNullOrEmpty(workflowName))
+            {
+                workflowName = WorkflowName;
+            }
+
+            var url = $"/subscriptions/{SubscriptionId}/resourceGroups/{ResourceGroupName}/providers/Microsoft.Web/sites/{LogicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/{workflowName}/triggers/{triggerName}/run?api-version=2018-11-01";
+            HttpClient client = ManagementApiHelper.GetHttpClient();
+            HttpResponseMessage response = client.PostAsync(url, content).Result;
+            var workflowResponse = new WorkFlowResponse(response);
+            return workflowResponse;
+
+        }
+
+        /// <summary>
         /// Once have ran the logic app we can get a workflow run helper which will let us access details about the run history
         /// </summary>
         /// <param name="runId"></param>
@@ -109,9 +132,13 @@ namespace IPB.LogicApp.Standard.Testing.Helpers
             return runList.Value.FirstOrDefault();
         }
 
-        public RunDetails GetMostRecentRun()
-        {            
-            var url = $@"subscriptions/{SubscriptionId}/resourceGroups/{ResourceGroupName}/providers/Microsoft.Web/sites/{LogicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/{WorkflowName}/runs?api-version={ApiSettings.ApiVersion}&$top=1";
+        public RunDetails GetMostRecentRun(string wfName)
+        {
+            if (string.IsNullOrEmpty(wfName))
+            {
+                wfName = this.WorkflowName;
+            }
+            var url = $@"subscriptions/{SubscriptionId}/resourceGroups/{ResourceGroupName}/providers/Microsoft.Web/sites/{LogicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/{wfName}/runs?api-version={ApiSettings.ApiVersion}&$top=1";
 
             var client = ManagementApiHelper.GetHttpClient();
 

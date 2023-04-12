@@ -43,26 +43,26 @@ namespace LogicApp.Testing.Example
             logicAppTestManager.LoadWorkflowRunHistory();
 
             //We can check the trigger status was successful
-            var triggerStatus = logicAppTestManager.GetTriggerStatus();
+            var triggerStatus = logicAppTestManager.GetTriggerStatus(workflowName);
             Assert.AreEqual(triggerStatus, TriggerStatus.Succeeded);
 
             //Check that an action was successful
-            var actionStatus = logicAppTestManager.GetActionStatus("Compose - Log Message Received");
+            var actionStatus = logicAppTestManager.GetActionStatus("Compose - Log Message Received", workflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
 
             //Check that another action was successful
-            actionStatus = logicAppTestManager.GetActionStatus("Response");
+            actionStatus = logicAppTestManager.GetActionStatus("Response", workflowName);
             Assert.AreEqual(actionStatus, ActionStatus.Succeeded);
 
             //Check the workflow run was successful
-            var workflowRunStatus = logicAppTestManager.GetWorkflowRunStatus();
+            var workflowRunStatus = logicAppTestManager.GetWorkflowRunStatus(workflowName);
             Assert.AreEqual(WorkflowRunStatus.Succeeded, workflowRunStatus);
 
 
             //Check some of the additional helper methods
-            var actionStatusJson = logicAppTestManager.GetActionJson("Response");
-            var inputMessage = logicAppTestManager.GetActionInputMessage("Response");
-            var outputMessage = logicAppTestManager.GetActionOutputMessage("Response");
+            var actionStatusJson = logicAppTestManager.GetActionJson("Response", workflowName);
+            var inputMessage = logicAppTestManager.GetActionInputMessage("Response", workflowName);
+            var outputMessage = logicAppTestManager.GetActionOutputMessage("Response", workflowName);
 
             var runsSince = logicAppTestManager.GetRunsSince(startDateTime);
             Assert.IsTrue(runsSince.Value.Count > 0);
@@ -70,7 +70,7 @@ namespace LogicApp.Testing.Example
             var runSince = logicAppTestManager.GetMostRecentRunSince(startDateTime);
             Assert.IsTrue(runsSince.Value.Count == 1);
 
-            var runDetails = logicAppTestManager.GetMostRecentRun();
+            var runDetails = logicAppTestManager.GetMostRecentRun(workflowName);
             Assert.IsNotNull(runDetails);
 
             var runidSince = logicAppTestManager.GetMostRecentRunIdSince(startDateTime);
